@@ -58,6 +58,11 @@ class Renamer
 
     if Dir.exist?("app/views/#{@from_resource_path}")
       `mv app/views/#{@from_resource_path} app/views/#{to_resource_path}`
+      dir = "app/views/#{@from_resource_path}"
+      Dir.entries(dir).select { |f| File.file?(File.join(dir, f)) }.each do |view_file|
+        replace_in_file(to_test, @from.pluralize.underscore, @to.pluralize.underscore)
+        replace_in_file(to_test, @from.underscore, @to.underscore)
+      end
     end
 
     to_helper_path = "app/helpers/#{to_resource_path}_helper.rb"
@@ -169,9 +174,23 @@ elsif ARGV[0] == "test"
 
       assert File.exist?("app/views/hello_world/index.html.erb")
       assert !File.exist?("app/views/dummies/index.html.erb")
+      assert_file_changed("app/views/dummies/index.html.erb",
+                          "dummies", "hello_worlds")
+      assert_file_changed("app/views/dummies/index.html.erb",
+                          "dummy", "hello_world")
+      assert File.exist?("app/views/hello_world/show.html.erb")
+      assert !File.exist?("app/views/dummies/show.html.erb")
+      assert_file_changed("app/views/dummies/show.html.erb",
+                          "dummies", "hello_worlds")
+      assert_file_changed("app/views/dummies/show.html.erb",
+                          "dummy", "hello_world")
 
       assert_file_changed("app/controllers/hello_world_controller.rb",
                           "DummiesController", "HelloWorldController")
+      assert_file_changed("app/controllers/hello_world_controller.rb",
+                          "dummies", "hello_worlds")
+      assert_file_changed("app/controllers/hello_world_controller.rb",
+                          "dummy", "hello_world")
 
       routes_contents = File.read("config/routes.rb")
       assert routes_contents.include?("hello_world")

@@ -1,1 +1,5 @@
 Sample index
+<% @dummies.each do |dummy| %>
+  <%= link_to dummy.name, dummy %>
+  <%= link_to dummy.name, edit_dummy_path(dummy) %><br />
+<% end %>
