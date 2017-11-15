@@ -29,10 +29,8 @@ class Renamer
       File.rename("test/models/#{@from.underscore}_test.rb", "test/models/#{to_test_file}")
       replace_in_file("test/models/#{to_test_file}", @from, @to)
     end
-    if File.exist?("test/fixtures/#{@from.underscore}_test.rb")
-      to_test_file = @to.underscore + "_test.rb"
-      File.rename("test/fixtures/#{@from.underscore}_test.rb", "test/fixtures/#{to_test_file}")
-      replace_in_file("test/fixtures/#{to_test_file}", @from, @to)
+    if File.exist?("test/fixtures/#{@from.pluralize.underscore}.yml")
+      File.rename("test/fixtures/#{@from.pluralize.underscore}.yml", "test/fixtures/#{@to.pluralize.underscore}.yml")
     end
   end
 
