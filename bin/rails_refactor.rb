@@ -19,16 +19,15 @@ class Renamer
     `mv app/models/#{@from.underscore}.rb app/models/#{to_model_file}`
     replace_in_file("app/models/#{to_model_file}", @from, @to)
 
-    to_spec_file = @to.underscore + "_spec.rb"
-    `mv spec/models/#{@from.underscore}_spec.rb spec/models/#{to_spec_file}`
-    replace_in_file("spec/models/#{to_spec_file}", @from, @to)
-
-    Dir["db/migrate/*_create_#{@from.underscore.pluralize}.rb"].each do |file|
-      timestamp_and_path = file.split('_')[0]
-      to_migration_path = "#{timestamp_and_path}_create_#{@to.underscore.pluralize}.rb"
-      `mv #{file} #{to_migration_path}`
-      replace_in_file(to_migration_path, "Create#{@from.pluralize}", "Create#{@to.pluralize}")
-      replace_in_file(to_migration_path, @from.underscore.pluralize, @to.underscore.pluralize)
+    if File.exist?("spec/models/#{@from.underscore}_spec.rb")
+      to_spec_file = @to.underscore + "_spec.rb"
+      File.rename("spec/models/#{@from.underscore}_spec.rb", "spec/models/#{to_spec_file}")
+      replace_in_file("spec/models/#{to_spec_file}", @from, @to)
+    end
+    if File.exist?("test/models/#{@from.underscore}_test.rb")
+      to_test_file = @to.underscore + "_test.rb"
+      File.rename("test/models/#{@from.underscore}_test.rb", "test/models/#{to_test_file}")
+      replace_in_file("test/models/#{to_test_file}", @from, @to)
     end
   end
 
@@ -42,11 +41,16 @@ class Renamer
     `mv app/controllers/#{@from.underscore}.rb #{to_controller_path}`
     replace_in_file(to_controller_path, @from, @to)
 
-    # TODO: Use cross-platform move commands.
     if File.exist?("spec/controllers/#{@from.underscore}_spec.rb")
       to_spec = "spec/controllers/#{to_resource_path}_controller_spec.rb"
-      `mv spec/controllers/#{@from.underscore}_spec.rb #{to_spec}`
+      File.rename("spec/controllers/#{@from.underscore}_spec.rb","#{to_spec}")
       replace_in_file(to_spec, @from, @to)
+    end
+
+    if File.exist?("test/controllers/#{@from.underscore}_test.rb")
+      to_test = "test/controllers/#{to_resource_path}_controller_test.rb"
+      File.rename("test/controllers/#{@from.underscore}_test.rb","#{to_test}")
+      replace_in_file(to_test, @from, @to)
     end
 
     if Dir.exist?("app/views/#{@from_resource_path}")
@@ -140,13 +144,11 @@ elsif ARGV[0] == "test"
       assert !File.exist?("spec/models/dummy_model_spec.rb")
       assert_file_changed("spec/models/new_model_spec.rb",
                           "DummyModel", "NewModel")
+      assert File.exist?("test/models/new_model_test.rb")
+      assert !File.exist?("test/models/dummy_model_test.rb")
+      assert_file_changed("test/models/new_model_test.rb",
+                          "DummyModel", "NewModel")
 
-      assert File.exist?("db/migrate/20170214234158_create_new_models.rb")
-      assert !File.exist?("db/migrate/20170214234158_create_dummy_models.rb")
-      assert_file_changed("db/migrate/20170214234158_create_new_models.rb",
-                          "CreateDummies", "CreateNewModels")
-      assert_file_changed("db/migrate/20170214234158_create_new_models.rb",
-                          ":dummy_models", ":new_models")
     end
 
     def test_controller_action_rename
@@ -178,6 +180,10 @@ elsif ARGV[0] == "test"
       assert File.exist?("spec/controllers/hello_world_controller_spec.rb")
       assert !File.exist?("spec/controllers/dummies_controller_spec.rb")
       assert_file_changed("spec/controllers/hello_world_controller_spec.rb",
+                          "DummiesController", "HelloWorldController")
+      assert File.exist?("test/controllers/hello_world_controller_test.rb")
+      assert !File.exist?("test/controllers/dummies_controller_test.rb")
+      assert_file_changed("test/controllers/hello_world_controller_test.rb",
                           "DummiesController", "HelloWorldController")
     end
   end
