@@ -5,7 +5,7 @@ require 'active_support/core_ext/string/inflections'
 begin
   File.exist? './config/environment.rb'
 rescue LoadError
-  puts "*** rails_refactor needs to be run from the root of a Rails 3 webapp ***"
+  puts "*** rails_refactor needs to be run from the root of a Rails 4 webapp ***"
   exit
 end
 
@@ -43,6 +43,9 @@ class Renamer
 
     `mv app/controllers/#{@from.underscore}.rb #{to_controller_path}`
     replace_in_file(to_controller_path, @from, @to)
+    replace_in_file(to_controller_path, @from_resource_name.underscore, to_resource_name.underscore)
+    replace_in_file(to_controller_path, @from_resource_name.singularize.underscore, to_resource_name.singularize.underscore)
+    replace_in_file(to_controller_path, @from_resource_name.singularize, to_resource_name.singularize)
 
     if File.exist?("spec/controllers/#{@from.underscore}_spec.rb")
       to_spec = "spec/controllers/#{to_resource_path}_controller_spec.rb"
@@ -54,14 +57,19 @@ class Renamer
       to_test = "test/controllers/#{to_resource_path}_controller_test.rb"
       File.rename("test/controllers/#{@from.underscore}_test.rb","#{to_test}")
       replace_in_file(to_test, @from, @to)
+      replace_in_file(to_test, @from_resource_name.underscore, to_resource_name.underscore)
+      replace_in_file(to_test, @from_resource_name.singularize.underscore, to_resource_name.singularize.underscore)
     end
 
     if Dir.exist?("app/views/#{@from_resource_path}")
-      `mv app/views/#{@from_resource_path} app/views/#{to_resource_path}`
-      dir = "app/views/#{@from_resource_path}"
+      File.rename("app/views/#{@from_resource_path}","app/views/#{to_resource_path}")
+      dir = "app/views/#{to_resource_path}"
+      puts "processing dir #{dir}"
       Dir.entries(dir).select { |f| File.file?(File.join(dir, f)) }.each do |view_file|
-        replace_in_file(to_test, @from.pluralize.underscore, @to.pluralize.underscore)
-        replace_in_file(to_test, @from.underscore, @to.underscore)
+        puts "processing view file #{view_file}"
+        puts "@from.pluralize.underscore: #{@from.underscore}"
+        replace_in_file("#{dir}/#{view_file}", @from_resource_name.underscore, to_resource_name.underscore)
+        replace_in_file("#{dir}/#{view_file}", @from_resource_name.singularize.underscore, to_resource_name.singularize.underscore)
       end
     end
 
@@ -127,7 +135,7 @@ elsif ARGV[0] == "test"
     def teardown
       `git checkout .`
       `git clean -f`
-      `rm -rf app/views/hello_world`
+      `rm -rf app/views/hello_worlds`
     end
 
     def rename(from, to)
@@ -168,46 +176,42 @@ elsif ARGV[0] == "test"
     end
 
     def test_controller_rename
-      rename("DummiesController", "HelloWorldController")
-      assert File.exist?("app/controllers/hello_world_controller.rb")
+      rename("DummiesController", "HelloWorldsController")
+      assert File.exist?("app/controllers/hello_worlds_controller.rb")
       assert !File.exist?("app/controllers/dummies_controller.rb")
 
-      assert File.exist?("app/views/hello_world/index.html.erb")
+      assert File.exist?("app/views/hello_worlds/index.html.erb")
       assert !File.exist?("app/views/dummies/index.html.erb")
-      assert_file_changed("app/views/dummies/index.html.erb",
-                          "dummies", "hello_worlds")
-      assert_file_changed("app/views/dummies/index.html.erb",
-                          "dummy", "hello_world")
-      assert File.exist?("app/views/hello_world/show.html.erb")
+      assert_file_changed("app/views/hello_worlds/index.html.erb",
+                          "dummy", "hello_worlds")
+      assert File.exist?("app/views/hello_worlds/show.html.erb")
       assert !File.exist?("app/views/dummies/show.html.erb")
-      assert_file_changed("app/views/dummies/show.html.erb",
-                          "dummies", "hello_worlds")
-      assert_file_changed("app/views/dummies/show.html.erb",
-                          "dummy", "hello_world")
+      assert_file_changed("app/views/hello_worlds/show.html.erb",
+                          "dummy", "hello_worlds")
 
-      assert_file_changed("app/controllers/hello_world_controller.rb",
-                          "DummiesController", "HelloWorldController")
-      assert_file_changed("app/controllers/hello_world_controller.rb",
+      assert_file_changed("app/controllers/hello_worlds_controller.rb",
+                          "DummiesController", "HelloWorldsController")
+      assert_file_changed("app/controllers/hello_worlds_controller.rb",
                           "dummies", "hello_worlds")
-      assert_file_changed("app/controllers/hello_world_controller.rb",
-                          "dummy", "hello_world")
+      assert_file_changed("app/controllers/hello_worlds_controller.rb",
+                          "dummy", "hello_worlds")
 
       routes_contents = File.read("config/routes.rb")
-      assert routes_contents.include?("hello_world")
+      assert routes_contents.include?("hello_worlds")
       assert !routes_contents.include?("dummies")
 
-      helper_contents = File.read("app/helpers/hello_world_helper.rb")
-      assert helper_contents.include?("HelloWorldHelper")
+      helper_contents = File.read("app/helpers/hello_worlds_helper.rb")
+      assert helper_contents.include?("HelloWorldsHelper")
       assert !helper_contents.include?("DummiesHelper")
 
-      assert File.exist?("spec/controllers/hello_world_controller_spec.rb")
+      assert File.exist?("spec/controllers/hello_worlds_controller_spec.rb")
       assert !File.exist?("spec/controllers/dummies_controller_spec.rb")
-      assert_file_changed("spec/controllers/hello_world_controller_spec.rb",
-                          "DummiesController", "HelloWorldController")
-      assert File.exist?("test/controllers/hello_world_controller_test.rb")
+      assert_file_changed("spec/controllers/hello_worlds_controller_spec.rb",
+                          "DummiesController", "HelloWorldsController")
+      assert File.exist?("test/controllers/hello_worlds_controller_test.rb")
       assert !File.exist?("test/controllers/dummies_controller_test.rb")
-      assert_file_changed("test/controllers/hello_world_controller_test.rb",
-                          "DummiesController", "HelloWorldController")
+      assert_file_changed("test/controllers/hello_worlds_controller_test.rb",
+                          "DummiesController", "HelloWorldsController")
     end
   end
 else
