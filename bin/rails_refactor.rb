@@ -29,6 +29,11 @@ class Renamer
       File.rename("test/models/#{@from.underscore}_test.rb", "test/models/#{to_test_file}")
       replace_in_file("test/models/#{to_test_file}", @from, @to)
     end
+    if File.exist?("test/fixtures/#{@from.underscore}_test.rb")
+      to_test_file = @to.underscore + "_test.rb"
+      File.rename("test/fixtures/#{@from.underscore}_test.rb", "test/fixtures/#{to_test_file}")
+      replace_in_file("test/fixtures/#{to_test_file}", @from, @to)
+    end
   end
 
   def controller_rename
@@ -148,7 +153,8 @@ elsif ARGV[0] == "test"
       assert !File.exist?("test/models/dummy_model_test.rb")
       assert_file_changed("test/models/new_model_test.rb",
                           "DummyModel", "NewModel")
-
+      assert File.exist?("test/fixtures/new_models.yml")
+      assert !File.exist?("test/fixtures/dummy_models.yml")
     end
 
     def test_controller_action_rename
